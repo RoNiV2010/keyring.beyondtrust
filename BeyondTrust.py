@@ -9,11 +9,13 @@ class BTPasswordSafe(KeyringBackend):
     """Retrive password from BeyondTrust Password Safe"""
 
     def __init__(self, BaseURL: str, credentials: credentials):
+        #Connect to BeyondTrust and initiate a session
         self.BaseURL = BaseURL
-        self.session, status = self.__class__.APILogin(BaseURL,credentials.username, credentials.password)
+        self.session, self._last_api_status = self.__class__.APILogin(BaseURL,credentials.username, credentials.password)
         self._keyring_dict = None
 
     def set_password(self, servicename, username, password):
+        #No password assignment for managed accounts
         pass
 
     def get_password(self, servicename, username):
@@ -33,6 +35,7 @@ class BTPasswordSafe(KeyringBackend):
         return self._keyring_dict
 
     def _get_entry(self, keyring_dict, service, username):
+        #returns an account dict or None
         result = None
         service_entries = keyring_dict.get(service)
         if service_entries:
@@ -45,14 +48,16 @@ class BTPasswordSafe(KeyringBackend):
 
     def _read_password(self, servicename, username):
         account = self._keyring[servicename][username]
-        self._keyring[servicename][username]["password"],request,stauscode = self.__class__.APIGetPassword(self.BaseURL, account, self.session)
+        self._keyring[servicename][username]["password"],self._last_request,self._last_api_status = self.__class__.APIGetPassword(self.BaseURL, account, self.session)
 
 
     def delete_password(self, servicename, username):
+        #No account removal
         pass
 
     @staticmethod
     def APILogin(BaseURL: str, username: str, key: str) -> Tuple[requests.Session, int]:
+        #Create a session to BeyondTrust.
         try:
             targetURL = __class__.URLJoin(BaseURL, "/Auth/SignAppin") 
             header = {'Authorization': f'PS-Auth key={key}; runas={username}', 'Content-Type':'application/json'}
@@ -66,6 +71,7 @@ class BTPasswordSafe(KeyringBackend):
 
     @staticmethod
     def APIGetAccounts(BaseURL: str, session: requests.Session) -> Tuple[dict, int]:
+        #read a list of available managed accounts and convert into dictionary
         try:
             targetURL = __class__.URLJoin(BaseURL, "/ManagedAccounts")
             accounts = session.get(targetURL)
@@ -79,6 +85,7 @@ class BTPasswordSafe(KeyringBackend):
     
     @staticmethod
     def APIGetPassword(BaseURL: str, account, session: requests.Session) -> Tuple[str, requests.models.Response, int]:
+        #Create a request to PasswordSafe and get a password based on the request.
         try:
             targetURL = __class__.URLJoin(BaseURL, "/Requests")
             reqdata = {"AccountId": account["AccountId"], "SystemId": account["SystemId"], "DurationMinutes": 120, "Reason": "Python keyring", "ConflictOption": "reuse"}
@@ -98,6 +105,7 @@ class BTPasswordSafe(KeyringBackend):
 
     @staticmethod
     def URLJoin(*args: str) -> str:
+        #Path concatination
         result = '/'.join(s.strip('/') for s in args)
         return result
         
