@@ -19,7 +19,7 @@ class BTPasswordSafe(KeyringBackend):
         pass
 
     def get_password(self, servicename, username):
-        """Get password of the username for the service
+        r"""Get password of the username for the service
         Username may be provided in following formats:
         <username> or <domain\username>"""
         uname = username.split('\\')[-1]
