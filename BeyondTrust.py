@@ -19,12 +19,15 @@ class BTPasswordSafe(KeyringBackend):
         pass
 
     def get_password(self, servicename, username):
-        """Get password of the username for the service"""
-        result = self._get_entry(self._keyring, servicename, username)
+        """Get password of the username for the service
+        Username may be provided in following formats:
+        <username> or <domain\username>"""
+        uname = username.split('\\')[-1]
+        result = self._get_entry(self._keyring, servicename, uname)
         if result:
             if not ("password" in result.keys()):
-                self._read_password(servicename, username)
-                result = self._get_entry(self._keyring, servicename, username)
+                self._read_password(servicename, uname)
+                result = self._get_entry(self._keyring, servicename, uname)
             result = result["password"]
         return result
 
